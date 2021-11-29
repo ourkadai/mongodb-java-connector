@@ -9,6 +9,8 @@ import org.bson.Document;
 
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class Main {
 
@@ -79,9 +81,14 @@ public class Main {
 
     public static void main(String[] args) {
 
+        Logger.getLogger("org.mongodb.driver").setLevel(Level.WARNING);
+
+//      Fetch data from local
         final MongoDatabase database = getMongoDatabase("localhost",27017,
                 "food");
-
+//      Fetch data from cloud
+//      final MongoDatabase database = getMongoDatabase(CONNECTION_STRING,
+//                "DataworkzDatabase");
         getMetadata(database).entrySet()
                 .stream()
                 .forEach(System.out::println);
