@@ -2,6 +2,7 @@ package com.dataworkz.mongo;
 
 import com.mongodb.*;
 import com.mongodb.client.MapReduceIterable;
+import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import org.bson.Document;
@@ -17,8 +18,21 @@ public class Main {
      * @param databaseName
      * @return
      */
-    private final static MongoDatabase getMongoDatabase(final String databaseName) {
-        MongoClient mongo = new MongoClient("localhost", 27017);
+    private final static MongoDatabase getMongoDatabase(final String connectionString,
+                                                        final String databaseName) {
+        com.mongodb.client.MongoClient mongo = MongoClients.create(connectionString);
+        return mongo.getDatabase(databaseName);
+    }
+
+    /**
+     * Get From Local
+     * @param databaseName
+     * @return
+     */
+    private final static MongoDatabase getMongoDatabase(final String host,
+                                                        final int port,
+                                                        final String databaseName) {
+        MongoClient mongo = new MongoClient(host, port);
         return mongo.getDatabase(databaseName);
     }
 
@@ -51,16 +65,18 @@ public class Main {
                 """;
 
         MapReduceIterable cars = coll.mapReduce(mapFn,reduceFn);
-        List<String> strings = new ArrayList<>();
+        List<String> keys = new ArrayList<>();
         cars.forEach((Block) o -> {
-            strings.add(((Document) o).getString("_id"));
+            keys.add(((Document) o).getString("_id"));
         });
-        return strings;
+        return keys;
     }
 
     public static void main(String[] args) {
 
-        final MongoDatabase database = getMongoDatabase("my-database");
+        final MongoDatabase database = getMongoDatabase("localhost",27017,
+                "my" +
+                "-database");
 
         cleanUp(database);
 
@@ -69,6 +85,5 @@ public class Main {
         getFieldNames(database,"my-collection")
                 .stream()
                 .forEach(System.out::println);
-
     }
 }
