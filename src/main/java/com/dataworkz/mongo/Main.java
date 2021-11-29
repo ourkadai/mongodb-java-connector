@@ -7,14 +7,13 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import org.bson.Document;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.function.Consumer;
 
 public class Main {
 
     /**
-     * Get From Local
+     * Get From Atlas
      * @param databaseName
      * @return
      */
@@ -36,19 +35,12 @@ public class Main {
         return mongo.getDatabase(databaseName);
     }
 
-    private final static void cleanUp(final MongoDatabase database) {
-        database.listCollectionNames().forEach((Consumer<? super String>) s -> {
-                    database.getCollection(s).drop();
-                }
-        );
-    }
-
-    private final static void createCollection(final MongoDatabase database,
-                                               final String collectionName) {
-        database.createCollection(collectionName);
-        Document document = new Document();
-        document.put("my-key", "my-value");
-        database.getCollection(collectionName).insertOne(document);
+    private final static Map<String,Collection<String>> getMetadata(final MongoDatabase database) {
+        Map<String,Collection<String>> metadata = new HashMap<>();
+        database.listCollectionNames().forEach((Consumer<? super String>) collectionName -> {
+            metadata.put(collectionName, getFieldNamesFailover(database,collectionName));
+        });
+        return metadata;
     }
 
     private final static List<String> getFieldNames(final MongoDatabase database,
@@ -72,17 +64,25 @@ public class Main {
         return keys;
     }
 
+    private final static Set<String> getFieldNamesFailover(final MongoDatabase database,
+                                                           final String collectionName) {
+
+        Set<String> keys = new TreeSet<>();
+        MongoCollection<Document> coll = database.getCollection(collectionName);
+
+        coll.find().forEach((Consumer) o -> {
+            ((Document) o).keySet().forEach(s -> keys.add(s));
+        });
+
+        return keys;
+    }
+
     public static void main(String[] args) {
 
         final MongoDatabase database = getMongoDatabase("localhost",27017,
-                "my" +
-                "-database");
+                "food");
 
-        cleanUp(database);
-
-        createCollection(database,"my-collection");
-
-        getFieldNames(database,"my-collection")
+        getMetadata(database).entrySet()
                 .stream()
                 .forEach(System.out::println);
     }
